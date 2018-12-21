@@ -1,0 +1,25 @@
+public List<SituacaoIdentificadorEntity> insert(List<SituacaoIdentificadorEntity> entities) {
+        logger.info("[SI ANTT] (DynamoRepository.insert) Inserindo identificador: {}", entities);
+
+        List<FailedBatch> failedBatches = dbAdapter.batchInsert(entities);
+        for (FailedBatch batch : failedBatches) {
+        	List<SituacaoIdentificadorEntity> identificadorEntities = new ArrayList<>();
+        	
+			logger.info("Failed items: " + batch.getException());
+
+			Map<String, List<WriteRequest>> items = batch.getUnprocessedItems();
+			for (Map.Entry<String, List<WriteRequest>> entry : items.entrySet()) {
+
+				String tableName = entry.getKey();
+				for (WriteRequest request : entry.getValue()) {
+					Map<String, AttributeValue> key = request.getPutRequest().getItem();
+					logger.info("  (table:" + tableName + ", key:" + key + ")");
+					identificadorEntities.add(dbAdapter.getDbMapper().marshallIntoObject(SituacaoIdentificadorEntity.class, key));
+				}
+			}
+			
+			this.insert(identificadorEntities);
+		}
+        
+        return entities;
+    }
